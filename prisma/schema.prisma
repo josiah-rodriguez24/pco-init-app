@@ -1,0 +1,304 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// App-level user — stub for future authentication / multi-tenant support.
+// For v1 there is no login; this model exists so the schema can grow into
+// NextAuth or a custom auth layer without a migration-heavy rewrite.
+// ---------------------------------------------------------------------------
+model AppUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("viewer")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — Service Types
+// ---------------------------------------------------------------------------
+model ServiceType {
+  id           String    @id @default(cuid())
+  externalId   String    @unique
+  name         String
+  description  String?
+  frequency    String?
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  plans         Plan[]
+  teams         Team[]
+  teamPositions TeamPosition[]
+
+  @@index([externalId])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — Plans (belong to a ServiceType)
+// ---------------------------------------------------------------------------
+model Plan {
+  id                 String    @id @default(cuid())
+  externalId         String    @unique
+  serviceTypeId      String
+  title              String?
+  dates              String?
+  sortDate           DateTime?
+  seriesTitle        String?
+  status             String?
+  totalLength        Int?
+  planningCenterUrl  String?
+  lastSyncedAt       DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  serviceType ServiceType  @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  people      PlanPerson[]
+  items       Item[]
+  teams       PlanTeam[]
+  planTimes   PlanTime[]
+
+  @@index([externalId])
+  @@index([serviceTypeId])
+  @@index([sortDate])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — Teams (belong to a ServiceType)
+// ---------------------------------------------------------------------------
+model Team {
+  id            String   @id @default(cuid())
+  externalId    String   @unique
+  serviceTypeId String
+  name          String
+  sequence      Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  serviceType ServiceType @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  planTeams   PlanTeam[]
+
+  @@index([externalId])
+  @@index([serviceTypeId])
+}
+
+// ---------------------------------------------------------------------------
+// Join table: which teams are assigned to which plans
+// ---------------------------------------------------------------------------
+model PlanTeam {
+  id     String @id @default(cuid())
+  planId String
+  teamId String
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, teamId])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — People assigned to a Plan
+// ---------------------------------------------------------------------------
+model PlanPerson {
+  id         String   @id @default(cuid())
+  externalId String   @unique
+  planId     String
+  personId   String?
+  personName String
+  personEmail String?
+  teamName   String?
+  status     String?
+  position   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  plan   Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([externalId])
+  @@index([planId])
+  @@index([personId])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — Items in a Plan (songs, headers, media, etc.)
+// ---------------------------------------------------------------------------
+model Item {
+  id        String   @id @default(cuid())
+  externalId String  @unique
+  planId    String
+  title     String
+  itemType  String?
+  sequence  Int?
+  length    Int?
+  songId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plan Plan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  song Song? @relation(fields: [songId], references: [id], onDelete: SetNull)
+
+  @@index([externalId])
+  @@index([planId])
+  @@index([songId])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — Songs
+// ---------------------------------------------------------------------------
+model Song {
+  id         String   @id @default(cuid())
+  externalId String   @unique
+  title      String
+  author     String?
+  ccliNumber String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  items Item[]
+
+  @@index([externalId])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — People (Services-scoped person profiles)
+// ---------------------------------------------------------------------------
+model Person {
+  id             String    @id @default(cuid())
+  externalId     String    @unique
+  firstName      String?
+  lastName       String?
+  name           String
+  email          String?
+  photoThumbnail String?
+  status         String?
+  lastSyncedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  planPeople              PlanPerson[]
+  blockouts               Blockout[]
+  teamPositionAssignments PersonTeamPositionAssignment[]
+
+  @@index([externalId])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — Blockouts (unavailability windows for a Person)
+// ---------------------------------------------------------------------------
+model Blockout {
+  id              String    @id @default(cuid())
+  externalId      String    @unique
+  personId        String
+  description     String?
+  reason          String?
+  startsAt        DateTime?
+  endsAt          DateTime?
+  repeatFrequency String?
+  repeatPeriod    String?
+  repeatInterval  String?
+  repeatUntil     DateTime?
+  timeZone        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([externalId])
+  @@index([personId])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — Team Positions (named roles within a team)
+// ---------------------------------------------------------------------------
+model TeamPosition {
+  id            String   @id @default(cuid())
+  externalId    String   @unique
+  serviceTypeId String
+  name          String
+  sequence      Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  serviceType ServiceType                   @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  assignments PersonTeamPositionAssignment[]
+
+  @@index([externalId])
+  @@index([serviceTypeId])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — Person ↔ Team Position assignments
+// ---------------------------------------------------------------------------
+model PersonTeamPositionAssignment {
+  id                 String   @id @default(cuid())
+  externalId         String   @unique
+  personId           String
+  teamPositionId     String
+  schedulePreference String?
+  preferredWeeks     String[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  person       Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  teamPosition TeamPosition @relation(fields: [teamPositionId], references: [id], onDelete: Cascade)
+
+  @@unique([personId, teamPositionId])
+  @@index([externalId])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — Plan Times (service time slots per plan)
+// ---------------------------------------------------------------------------
+model PlanTime {
+  id        String    @id @default(cuid())
+  externalId String   @unique
+  planId    String
+  name      String?
+  timeType  String?
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([externalId])
+  @@index([planId])
+}
+
+// ---------------------------------------------------------------------------
+// Sync tracking — one row per sync execution
+// ---------------------------------------------------------------------------
+model SyncJob {
+  id           String    @id @default(cuid())
+  jobType      String
+  status       String    @default("running")
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  itemsSynced  Int       @default(0)
+  itemsFailed  Int       @default(0)
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Webhook event log — raw payloads from Planning Center webhooks
+// ---------------------------------------------------------------------------
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  eventType   String
+  payload     Json
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([eventType])
+  @@index([createdAt])
+}
