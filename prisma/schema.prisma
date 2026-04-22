@@ -59,11 +59,12 @@ model Plan {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  serviceType ServiceType  @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
-  people      PlanPerson[]
-  items       Item[]
-  teams       PlanTeam[]
-  planTimes   PlanTime[]
+  serviceType     ServiceType      @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  people          PlanPerson[]
+  items           Item[]
+  teams           PlanTeam[]
+  planTimes       PlanTime[]
+  neededPositions NeededPosition[]
 
   @@index([externalId])
   @@index([serviceTypeId])
@@ -82,8 +83,9 @@ model Team {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  serviceType ServiceType @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
-  planTeams   PlanTeam[]
+  serviceType   ServiceType    @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  planTeams     PlanTeam[]
+  teamPositions TeamPosition[]
 
   @@index([externalId])
   @@index([serviceTypeId])
@@ -107,17 +109,18 @@ model PlanTeam {
 // Planning Center — People assigned to a Plan
 // ---------------------------------------------------------------------------
 model PlanPerson {
-  id         String   @id @default(cuid())
-  externalId String   @unique
-  planId     String
-  personId   String?
-  personName String
-  personEmail String?
-  teamName   String?
-  status     String?
-  position   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id               String   @id @default(cuid())
+  externalId       String   @unique
+  planId           String
+  personId         String?
+  personExternalId String?
+  personName       String
+  personEmail      String?
+  teamName         String?
+  status           String?
+  position         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   plan   Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
   person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
@@ -125,6 +128,7 @@ model PlanPerson {
   @@index([externalId])
   @@index([planId])
   @@index([personId])
+  @@index([personExternalId])
 }
 
 // ---------------------------------------------------------------------------
@@ -219,19 +223,25 @@ model Blockout {
 // Planning Center — Team Positions (named roles within a team)
 // ---------------------------------------------------------------------------
 model TeamPosition {
-  id            String   @id @default(cuid())
-  externalId    String   @unique
-  serviceTypeId String
-  name          String
-  sequence      Int?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String   @id @default(cuid())
+  externalId        String   @unique
+  serviceTypeId     String
+  teamId            String?
+  name              String
+  sequence          Int?
+  tags              Json?
+  tagGroups         Json?
+  negativeTagGroups Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   serviceType ServiceType                   @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  team        Team?                          @relation(fields: [teamId], references: [id], onDelete: SetNull)
   assignments PersonTeamPositionAssignment[]
 
   @@index([externalId])
   @@index([serviceTypeId])
+  @@index([teamId])
 }
 
 // ---------------------------------------------------------------------------
@@ -267,6 +277,25 @@ model PlanTime {
   endsAt    DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([externalId])
+  @@index([planId])
+}
+
+// ---------------------------------------------------------------------------
+// Planning Center — Needed Positions (unfilled slots in a plan)
+// ---------------------------------------------------------------------------
+model NeededPosition {
+  id               String   @id @default(cuid())
+  externalId       String   @unique
+  planId           String
+  teamPositionName String?
+  quantity         Int      @default(0)
+  scheduledTo      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
 

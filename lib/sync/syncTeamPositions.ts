@@ -8,9 +8,10 @@ import {
   mapPersonTeamPositionAssignment,
 } from "@/lib/planning-center/mappers";
 import {
-  upsertTeamPositions,
+  upsertTeamPosition,
   upsertPersonTeamPositionAssignment,
 } from "@/lib/repositories/teamPositionRepo";
+import type { MappedTeamPosition } from "@/lib/planning-center/mappers";
 import { listServiceTypes } from "@/lib/repositories/serviceTypesRepo";
 import type { SyncResult } from "./syncServiceTypes";
 
@@ -52,9 +53,20 @@ export async function syncTeamPositions(): Promise<SyncResult> {
           st.externalId
         );
         const mappedPositions = pcoPositions.map(mapTeamPosition);
-        const { synced, failed } = await upsertTeamPositions(
+
+        const teamLookup = new Map<string, string>();
+        const dbTeams = await prisma.team.findMany({
+          where: { serviceTypeId: st.id },
+          select: { id: true, externalId: true },
+        });
+        for (const t of dbTeams) {
+          teamLookup.set(t.externalId, t.id);
+        }
+
+        const { synced, failed } = await upsertTeamPositionsWithTeam(
           mappedPositions,
-          st.id
+          st.id,
+          teamLookup
         );
 
         totalSynced += synced;
@@ -141,4 +153,31 @@ export async function syncTeamPositions(): Promise<SyncResult> {
 
     return { jobId: job.id, synced: 0, failed: 0, status: "failed", errorMessage: message };
   }
+}
+
+async function upsertTeamPositionsWithTeam(
+  items: MappedTeamPosition[],
+  serviceTypeId: string,
+  teamLookup: Map<string, string>
+): Promise<{ synced: number; failed: number }> {
+  let synced = 0;
+  let failed = 0;
+
+  for (const item of items) {
+    try {
+      const teamId = item.teamExternalId
+        ? teamLookup.get(item.teamExternalId) ?? null
+        : null;
+      await upsertTeamPosition(item, serviceTypeId, teamId);
+      synced++;
+    } catch (error) {
+      console.error(
+        `[TeamPositionRepo] Failed to upsert position ${item.externalId}:`,
+        error
+      );
+      failed++;
+    }
+  }
+
+  return { synced, failed };
 }

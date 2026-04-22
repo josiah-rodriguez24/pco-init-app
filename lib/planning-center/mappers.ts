@@ -11,6 +11,7 @@ import type {
   PcoTeamPositionAttributes,
   PcoPersonTeamPositionAssignmentAttributes,
   PcoPlanTimeAttributes,
+  PcoNeededPositionAttributes,
 } from "./types";
 import {
   buildIncludedMap,
@@ -62,6 +63,7 @@ export interface MappedTeam {
 export interface MappedPlanPerson {
   externalId: string;
   personName: string;
+  personExternalId: string | null;
   personEmail: string | null;
   teamName: string | null;
   teamExternalId: string | null;
@@ -120,6 +122,10 @@ export interface MappedTeamPosition {
   externalId: string;
   name: string;
   sequence: number | null;
+  teamExternalId: string | null;
+  tags: Record<string, unknown>[] | null;
+  tagGroups: Record<string, unknown>[] | null;
+  negativeTagGroups: Record<string, unknown>[] | null;
 }
 
 export interface MappedPersonTeamPositionAssignment {
@@ -221,12 +227,12 @@ export function mapPlanPerson(
       | undefined ?? null;
   const teamExternalId = getRelationshipId(resource, "team");
 
-  // TODO [field]: Email is not available on PlanPerson attributes.
-  // To get email, resolve the `person` relationship and fetch separately
-  // via GET /people/{person_id} (People API, not Services API).
+  const personExternalId = getRelationshipId(resource, "person");
+
   return {
     externalId: resource.id,
     personName: a.name ?? "Unknown",
+    personExternalId,
     personEmail: null,
     teamName,
     teamExternalId,
@@ -315,10 +321,15 @@ export function mapTeamPosition(
   resource: JsonApiResource<PcoTeamPositionAttributes>
 ): MappedTeamPosition {
   const a = resource.attributes;
+  const teamExternalId = getRelationshipId(resource, "team");
   return {
     externalId: resource.id,
     name: a.name ?? "Unnamed Position",
     sequence: typeof a.sequence === "number" ? a.sequence : null,
+    teamExternalId,
+    tags: Array.isArray(a.tags) && a.tags.length > 0 ? a.tags : null,
+    tagGroups: Array.isArray(a.tag_groups) && a.tag_groups.length > 0 ? a.tag_groups : null,
+    negativeTagGroups: Array.isArray(a.negative_tag_groups) && a.negative_tag_groups.length > 0 ? a.negative_tag_groups : null,
   };
 }
 
@@ -347,5 +358,28 @@ export function mapPlanTime(
     timeType: a.time_type ?? null,
     startsAt: a.starts_at ? new Date(a.starts_at) : null,
     endsAt: a.ends_at ? new Date(a.ends_at) : null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// NeededPosition
+// ---------------------------------------------------------------------------
+
+export interface MappedNeededPosition {
+  externalId: string;
+  teamPositionName: string | null;
+  quantity: number;
+  scheduledTo: string | null;
+}
+
+export function mapNeededPosition(
+  resource: JsonApiResource<PcoNeededPositionAttributes>
+): MappedNeededPosition {
+  const a = resource.attributes;
+  return {
+    externalId: resource.id,
+    teamPositionName: a.team_position_name ?? null,
+    quantity: typeof a.quantity === "number" ? a.quantity : 0,
+    scheduledTo: a.scheduled_to ?? null,
   };
 }

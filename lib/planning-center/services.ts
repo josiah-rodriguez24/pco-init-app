@@ -13,6 +13,7 @@ import type {
   PcoTeamPositionAttributes,
   PcoPersonTeamPositionAssignmentAttributes,
   PcoPlanTimeAttributes,
+  PcoNeededPositionAttributes,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -219,7 +220,7 @@ export async function fetchTeamPositionsForServiceType(
   serviceTypeId: string
 ): Promise<PaginatedResult<PcoTeamPositionAttributes>> {
   return fetchAllPages<PcoTeamPositionAttributes>(
-    `/service_types/${serviceTypeId}/team_positions`
+    `/service_types/${serviceTypeId}/team_positions?include=team`
   );
 }
 
@@ -252,5 +253,23 @@ export async function fetchPlanTimesForPlan(
 ): Promise<PaginatedResult<PcoPlanTimeAttributes>> {
   return fetchAllPages<PcoPlanTimeAttributes>(
     `/service_types/${serviceTypeId}/plans/${planId}/plan_times`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Needed Positions (unfilled position demand per plan)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch needed (unfilled) positions for a specific plan.
+ *
+ * Endpoint: GET /service_types/{service_type_id}/plans/{plan_id}/needed_positions
+ */
+export async function fetchNeededPositionsForPlan(
+  serviceTypeId: string,
+  planId: string
+): Promise<PaginatedResult<PcoNeededPositionAttributes>> {
+  return fetchAllPages<PcoNeededPositionAttributes>(
+    `/service_types/${serviceTypeId}/plans/${planId}/needed_positions`
   );
 }

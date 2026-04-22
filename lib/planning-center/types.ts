@@ -234,9 +234,9 @@ export interface PcoBlockoutAttributes {
 export interface PcoTeamPositionAttributes {
   name?: string;
   sequence?: number | null;
-  tags?: unknown[];
-  tag_groups?: unknown[];
-  negative_tag_groups?: unknown[];
+  tags?: Record<string, unknown>[];
+  tag_groups?: Record<string, unknown>[];
+  negative_tag_groups?: Record<string, unknown>[];
 }
 
 // ---------------------------------------------------------------------------
@@ -248,6 +248,16 @@ export interface PcoPersonTeamPositionAssignmentAttributes {
   preferred_weeks?: string[];
   created_at?: string;
   updated_at?: string;
+}
+
+// ---------------------------------------------------------------------------
+// NeededPosition attributes (schema: neededposition_attributes)
+// From GET /service_types/{id}/plans/{id}/needed_positions
+// ---------------------------------------------------------------------------
+export interface PcoNeededPositionAttributes {
+  quantity?: number | null;
+  scheduled_to?: string | null;
+  team_position_name?: string | null;
 }
 
 // ---------------------------------------------------------------------------

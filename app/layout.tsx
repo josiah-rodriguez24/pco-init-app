@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PCO Dashboard",
-  description: "Planning Center Services dashboard and data viewer",
+  title: "PCO Team Status",
+  description: "Team status dashboard, smart scheduler, and planning intelligence for Planning Center Services",
 };
 
 export default function RootLayout({

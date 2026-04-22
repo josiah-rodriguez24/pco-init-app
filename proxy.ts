@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Middleware stub — runs on matched routes before the handler.
+ * Proxy stub — runs on matched routes before the handler.
  *
  * Currently a pass-through. When adding app authentication (e.g. NextAuth),
  * add session checks here to protect dashboard routes and sync endpoints.
@@ -16,7 +16,8 @@ import type { NextRequest } from "next/server";
  *     return NextResponse.redirect(new URL("/login", request.url));
  *   }
  */
-export function middleware(_request: NextRequest) {
+export function proxy(request: NextRequest) {
+  void request;
   return NextResponse.next();
 }
 

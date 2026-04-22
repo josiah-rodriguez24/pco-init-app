@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import type {
   MappedTeamPosition,
   MappedPersonTeamPositionAssignment,
@@ -10,19 +11,32 @@ import type {
 
 export async function upsertTeamPosition(
   data: MappedTeamPosition,
-  serviceTypeId: string
+  serviceTypeId: string,
+  teamId?: string | null
 ): Promise<TeamPosition> {
+  const tagsJson = (data.tags ?? undefined) as Prisma.InputJsonValue | undefined;
+  const tagGroupsJson = (data.tagGroups ?? undefined) as Prisma.InputJsonValue | undefined;
+  const negativeTagGroupsJson = (data.negativeTagGroups ?? undefined) as Prisma.InputJsonValue | undefined;
+
   return prisma.teamPosition.upsert({
     where: { externalId: data.externalId },
     create: {
       externalId: data.externalId,
       serviceTypeId,
+      teamId: teamId ?? null,
       name: data.name,
       sequence: data.sequence,
+      tags: tagsJson,
+      tagGroups: tagGroupsJson,
+      negativeTagGroups: negativeTagGroupsJson,
     },
     update: {
       name: data.name,
       sequence: data.sequence,
+      teamId: teamId ?? undefined,
+      tags: tagsJson,
+      tagGroups: tagGroupsJson,
+      negativeTagGroups: negativeTagGroupsJson,
     },
   });
 }

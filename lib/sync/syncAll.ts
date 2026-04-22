@@ -7,6 +7,7 @@ import { syncPlanPeople } from "./syncPlanPeople";
 import { syncItems } from "./syncItems";
 import { syncPeople } from "./syncPeople";
 import { syncBlockouts } from "./syncBlockouts";
+import { syncNeededPositions } from "./syncNeededPositions";
 
 // ---------------------------------------------------------------------------
 // Full sync orchestrator.
@@ -35,6 +36,7 @@ export interface SyncAllResult {
   items: SyncResult;
   people: SyncResult;
   blockouts: SyncResult;
+  neededPositions: SyncResult;
 }
 
 /**
@@ -76,6 +78,9 @@ export async function syncAll(): Promise<SyncAllResult> {
   // Stage 9: blockouts (depends on people)
   const blockoutsResult = await syncBlockouts();
 
+  // Stage 10: needed positions / demand (depends on plans)
+  const neededPositionsResult = await syncNeededPositions();
+
   console.log("[SyncAll] Full sync finished.", {
     serviceTypes: serviceTypesResult.status,
     teams: teamsResult.status,
@@ -86,6 +91,7 @@ export async function syncAll(): Promise<SyncAllResult> {
     items: itemsResult.status,
     people: peopleResult.status,
     blockouts: blockoutsResult.status,
+    neededPositions: neededPositionsResult.status,
   });
 
   return {
@@ -98,5 +104,6 @@ export async function syncAll(): Promise<SyncAllResult> {
     items: itemsResult,
     people: peopleResult,
     blockouts: blockoutsResult,
+    neededPositions: neededPositionsResult,
   };
 }

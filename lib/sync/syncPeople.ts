@@ -85,34 +85,38 @@ export async function syncPeople(): Promise<SyncResult> {
 }
 
 /**
- * Link PlanPerson rows to Person records by matching on personName.
+ * Link PlanPerson rows to Person records.
  *
- * This is a best-effort match: PCO's PlanPerson has a `name` attribute
- * but no direct person ID in the attributes we currently store. We match
- * by name. A more precise approach (using the person relationship ID from
- * the PlanPerson JSON:API response) would require storing that ID during
- * plan-people sync — a future improvement.
+ * Primary strategy: match on personExternalId (the PCO person relationship
+ * ID stored during plan-people sync). Falls back to name matching for any
+ * rows that lack personExternalId.
  */
 async function linkPlanPeopleToPersons(): Promise<void> {
   const unlinked = await prisma.planPerson.findMany({
     where: { personId: null },
-    select: { id: true, personName: true },
+    select: { id: true, personName: true, personExternalId: true },
   });
 
   if (unlinked.length === 0) return;
 
   const people = await prisma.person.findMany({
-    select: { id: true, name: true },
+    select: { id: true, externalId: true, name: true },
   });
 
+  const externalIdLookup = new Map<string, string>();
   const nameLookup = new Map<string, string>();
   for (const p of people) {
+    externalIdLookup.set(p.externalId, p.id);
     nameLookup.set(p.name.toLowerCase(), p.id);
   }
 
   let linked = 0;
   for (const pp of unlinked) {
-    const personId = nameLookup.get(pp.personName.toLowerCase());
+    const personId =
+      (pp.personExternalId ? externalIdLookup.get(pp.personExternalId) : null) ??
+      nameLookup.get(pp.personName.toLowerCase()) ??
+      null;
+
     if (personId) {
       await prisma.planPerson.update({
         where: { id: pp.id },

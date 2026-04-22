@@ -15,6 +15,7 @@ export async function upsertPlanPerson(
       externalId: data.externalId,
       planId,
       personName: data.personName,
+      personExternalId: data.personExternalId,
       personEmail: data.personEmail,
       teamName: data.teamName,
       status: data.status,
@@ -22,6 +23,7 @@ export async function upsertPlanPerson(
     },
     update: {
       personName: data.personName,
+      personExternalId: data.personExternalId,
       personEmail: data.personEmail,
       teamName: data.teamName,
       status: data.status,

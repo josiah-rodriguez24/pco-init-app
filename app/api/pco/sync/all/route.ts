@@ -5,8 +5,9 @@ import { toErrorResponse } from "@/lib/errors";
 /**
  * POST /api/pco/sync/all
  *
- * Triggers a full 9-stage sync: service types → teams → plans (future + past)
- * → team positions → plan times → plan people → items → people → blockouts.
+ * Triggers a full 10-stage sync: service types → teams → plans (future + past)
+ * → team positions → plan times → plan people → items → people → blockouts
+ * → needed positions.
  *
  * Suitable for initial seed or manual "sync everything" action.
  */
