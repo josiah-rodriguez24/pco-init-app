@@ -107,7 +107,8 @@ npx prisma studio
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+By default Next.js will try `http://localhost:3000`. If that port is already in
+use, it may automatically start on `3001` or another open port.
 
 ---
 
@@ -118,21 +119,35 @@ The app does not call Planning Center on every page load. Instead, you trigger s
 ### Sync service types
 
 ```bash
-curl -X POST http://localhost:3000/api/pco/sync/service-types
+npm run sync:service-types
 ```
 
 ### Sync plans
 
 ```bash
 # Sync service types first, then plans
-curl -X POST http://localhost:3000/api/pco/sync/service-types
-curl -X POST http://localhost:3000/api/pco/sync/plans
+npm run sync:service-types
+npm run sync:plans
+```
+
+### Sync all data
+
+```bash
+npm run sync:all
+```
+
+The sync helper reads `APP_BASE_URL` from your env files and also falls back to
+common local ports. If you need to target a specific dev server, pass
+`--base-url` through npm:
+
+```bash
+npm run sync:team-positions -- --base-url http://localhost:3001
 ```
 
 ### Health check
 
 ```bash
-curl http://localhost:3000/api/health
+curl "${APP_BASE_URL:-http://localhost:3000}/api/health"
 ```
 
 ---

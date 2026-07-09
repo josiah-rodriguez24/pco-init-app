@@ -14,7 +14,8 @@ import { ArrowUpDown, X, ChevronDown, ChevronUp } from "lucide-react";
 import type { TeamMemberRow } from "@/lib/team-status/getWorshipTeamStatus";
 import type { Tier } from "@/lib/team-status/tiers";
 import { TIER_META } from "@/lib/team-status/tiers";
-import { getRoleLabel } from "@/lib/team-status/roleTaxonomy";
+import { getRoleDefinition, getRoleLabel } from "@/lib/team-status/roleTaxonomy";
+import { filterMembersByNode } from "@/lib/team-status/filterMembers";
 
 interface StatusDataGridProps {
   data: TeamMemberRow[];
@@ -38,10 +39,8 @@ const BRANCH_TAG_COLORS: Record<string, string> = {
 
 function RoleTagChip({ tag }: { tag: string }) {
   const label = getRoleLabel(tag);
-  const branchColor =
-    tag === "band" || tag === "vocals"
-      ? BRANCH_TAG_COLORS[tag]
-      : undefined;
+  const branch = getRoleDefinition(tag)?.branch;
+  const branchColor = branch ? BRANCH_TAG_COLORS[branch] : undefined;
   return (
     <span
       className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${
@@ -114,27 +113,19 @@ const columns = [
       );
     },
   }),
+  columnHelper.accessor("schedulePreference", {
+    header: "Serve Preference",
+    cell: (info) => {
+      const val = info.getValue();
+      if (!val) return <span className="text-muted">—</span>;
+      return <span className="capitalize">{val.replace(/_/g, " ")}</span>;
+    },
+  }),
   columnHelper.accessor("lastServed", {
     header: "Last Served",
     cell: (info) => info.getValue() ?? "—",
   }),
 ];
-
-const FILTER_NODE_TO_TAGS: Record<string, string[]> = {
-  "Worship Team": [],
-  Band: ["guitar", "bass", "drums", "keys", "tracks", "strings", "brass"],
-  Vocals: ["worship-leader", "co-leader", "vocalist"],
-  Guitar: ["guitar"],
-  Bass: ["bass"],
-  Drums: ["drums"],
-  Keys: ["keys"],
-  Tracks: ["tracks"],
-  Strings: ["strings"],
-  Brass: ["brass"],
-  "Worship Leader": ["worship-leader"],
-  "Co-Leader": ["co-leader"],
-  Vocalist: ["vocalist"],
-};
 
 export function StatusDataGrid({
   data,
@@ -145,17 +136,10 @@ export function StatusDataGrid({
   const [globalFilter, setGlobalFilter] = useState("");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const filteredData = useMemo(() => {
-    if (!activeFilter) return data;
-    if (activeFilter === "Worship Team") return data;
-
-    const requiredTags = FILTER_NODE_TO_TAGS[activeFilter];
-    if (!requiredTags || requiredTags.length === 0) return data;
-
-    return data.filter((m) =>
-      requiredTags.some((tag) => m.roleTags.includes(tag))
-    );
-  }, [data, activeFilter]);
+  const filteredData = useMemo(
+    () => filterMembersByNode(data, activeFilter),
+    [data, activeFilter]
+  );
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -167,6 +151,19 @@ export function StatusDataGrid({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: (row, _columnId, filterValue) => {
+      const q = String(filterValue).trim().toLowerCase();
+      if (!q) return true;
+      const m = row.original;
+      return (
+        m.personName.toLowerCase().includes(q) ||
+        m.roleTags.some(
+          (tag) =>
+            tag.toLowerCase().includes(q) ||
+            getRoleLabel(tag).toLowerCase().includes(q)
+        )
+      );
+    },
   });
 
   function toggleRow(personKey: string) {

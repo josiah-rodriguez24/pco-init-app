@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { ResponsiveSankey } from "@nivo/sankey";
 import type { SankeyNode, SankeyLink } from "@/lib/team-status/getWorshipTeamStatus";
 
@@ -62,7 +63,7 @@ export function SankeyChart({
   onNodeClick,
   onLinkClick,
 }: SankeyChartProps) {
-  const data = { nodes, links };
+  const data = useMemo(() => ({ nodes, links }), [nodes, links]);
 
   if (nodes.length === 0) {
     return (
@@ -82,7 +83,7 @@ export function SankeyChart({
     <div className="w-full" style={{ height: `${dynamicHeight}px` }}>
       <ResponsiveSankey
         data={data}
-        margin={{ top: 24, right: 180, bottom: 24, left: 24 }}
+        margin={{ top: 24, right: 180, bottom: 24, left: 140 }}
         align="justify"
         colors={(node) => getNodeColor(node.id as string)}
         nodeOpacity={1}

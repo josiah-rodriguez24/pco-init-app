@@ -33,3 +33,16 @@ export function computeTier(scheduledCount: number): Tier {
   }
   return "D";
 }
+
+export type FriendlyTierGroup = "Very Skilled" | "Skilled" | "Developing";
+
+const TIER_TO_FRIENDLY: Record<Tier, FriendlyTierGroup> = {
+  A: "Very Skilled",
+  B: "Skilled",
+  C: "Developing",
+  D: "Developing",
+};
+
+export function getFriendlyTierGroup(tier: Tier): FriendlyTierGroup {
+  return TIER_TO_FRIENDLY[tier];
+}

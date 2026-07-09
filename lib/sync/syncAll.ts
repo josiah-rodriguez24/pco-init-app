@@ -16,11 +16,11 @@ import { syncNeededPositions } from "./syncNeededPositions";
 //   1. Service Types (no prereqs)
 //   2. Teams (requires service types)
 //   3. Plans — future + past (requires service types)
-//   4. Team Positions (requires service types + people for assignments)
-//   5. Plan Times (requires plans)
-//   6. Plan People (requires plans)
-//   7. Items + Songs (requires plans)
-//   8. People (requires plan people for FK linking)
+//   4. Plan Times (requires plans)
+//   5. Plan People (requires plans)
+//   6. Items + Songs (requires plans)
+//   7. People (requires plan people for FK linking)
+//   8. Team Positions + Assignments (requires service types + people)
 //   9. Blockouts (requires people)
 //
 // Each stage is independent — a failure in one does not block the others.
@@ -57,23 +57,20 @@ export async function syncAll(): Promise<SyncAllResult> {
   // Stage 3: plans — future + past (depends on service types)
   const plansResult = await syncPlans({ filter: "all" });
 
-  // Stage 4: team positions + person assignments (depends on service types)
-  // Note: person assignments in this stage will only link people that
-  // have already been synced. If running for the first time, a second
-  // full sync will catch any missed assignment links.
-  const teamPositionsResult = await syncTeamPositions();
-
-  // Stage 5: plan times (depends on plans)
+  // Stage 4: plan times (depends on plans)
   const planTimesResult = await syncPlanTimes();
 
-  // Stage 6: plan people (depends on plans)
+  // Stage 5: plan people (depends on plans)
   const planPeopleResult = await syncPlanPeople();
 
-  // Stage 7: items + songs (depends on plans)
+  // Stage 6: items + songs (depends on plans)
   const itemsResult = await syncItems();
 
-  // Stage 8: people (depends on plan people for FK linking)
+  // Stage 7: people (depends on plan people for FK linking)
   const peopleResult = await syncPeople();
+
+  // Stage 8: team positions + person assignments (depends on service types + people)
+  const teamPositionsResult = await syncTeamPositions();
 
   // Stage 9: blockouts (depends on people)
   const blockoutsResult = await syncBlockouts();
